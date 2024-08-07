@@ -1,0 +1,351 @@
+import java.util.HashMap;
+import java.util.Map;
+
+// Classe base para todas as peças
+public abstract class Peca {
+    private int x; // Posição horizontal no tabuleiro
+    private int y; // Posição vertical no tabuleiro
+    private boolean primeiraMovimentacao; // Para movimentos especiais, como o peão
+
+    public Peca(int x, int y) {
+        this.x = x;
+        this.y = y;
+        this.primeiraMovimentacao = true;
+    }
+
+    public int getX() {
+        return x;
+    }
+
+    public void setX(int x) {
+        this.x = x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    public void setY(int y) {
+        this.y = y;
+    }
+
+    public boolean isPrimeiraMovimentacao() {
+        return primeiraMovimentacao;
+    }
+
+    public void setPrimeiraMovimentacao(boolean primeiraMovimentacao) {
+        this.primeiraMovimentacao = primeiraMovimentacao;
+    }
+
+    // Método abstrato que deve ser implementado pelas subclasses
+    public abstract boolean podeMoverPara(Tabuleiro tabuleiro, int novoX, int novoY);
+    
+    // Método para mover a peça no tabuleiro
+    public void mover(Tabuleiro tabuleiro, int novoX, int novoY) {
+        if (podeMoverPara(tabuleiro, novoX, novoY)) {
+            tabuleiro.moverPeca(this, novoX, novoY);
+            this.primeiraMovimentacao = false; // Após o movimento, o peão não está mais na sua primeira movimentação
+        } else {
+            throw new IllegalArgumentException("Movimento inválido para " + this.getClass().getSimpleName());
+        }
+    }
+}
+
+// Subclasse Rei
+class Rei extends Peca {
+    public Rei(int x, int y) {
+        super(x, y);
+    }
+
+    @Override
+    public boolean podeMoverPara(Tabuleiro tabuleiro, int novoX, int novoY) {
+        // Movimento do rei: uma casa em qualquer direção
+        return Math.abs(novoX - getX()) <= 1 && Math.abs(novoY - getY()) <= 1;
+    }
+}
+
+// Subclasse Rainha
+class Rainha extends Peca {
+    public Rainha(int x, int y) {
+        super(x, y);
+    }
+
+    @Override
+    public boolean podeMoverPara(Tabuleiro tabuleiro, int novoX, int novoY) {
+        // Movimento da rainha: qualquer número de casas em linha reta ou diagonal
+        return novoX == getX() || novoY == getY() || Math.abs(novoX - getX()) == Math.abs(novoY - getY());
+    }
+}
+
+// Subclasse Bispo
+class Bispo extends Peca {
+    public Bispo(int x, int y) {
+        super(x, y);
+    }
+
+    @Override
+    public boolean podeMoverPara(Tabuleiro tabuleiro, int novoX, int novoY) {
+        // Movimento do bispo: apenas diagonal
+        return Math.abs(novoX - getX()) == Math.abs(novoY - getY());
+    }
+}
+
+// Subclasse Cavalo
+class Cavalo extends Peca {
+    public Cavalo(int x, int y) {
+        super(x, y);
+    }
+
+    @Override
+    public boolean podeMoverPara(Tabuleiro tabuleiro, int novoX, int novoY) {
+        // Movimento do cavalo: "L"
+        int dx = Math.abs(novoX - getX());
+        int dy = Math.abs(novoY - getY());
+        return (dx == 2 && dy == 1) || (dx == 1 && dy == 2);
+    }
+}
+
+// Subclasse Torre
+class Torre extends Peca {
+    public Torre(int x, int y) {
+        super(x, y);
+    }
+
+    @Override
+    public boolean podeMoverPara(Tabuleiro tabuleiro, int novoX, int novoY) {
+        // Movimento da torre: linha reta horizontal ou vertical
+        return novoX == getX() || novoY == getY();
+    }
+}
+
+// Subclasse Peão
+class Peao extends Peca {
+    public Peao(int x, int y) {
+        super(x, y);
+    }
+
+    @Override
+    public boolean podeMoverPara(Tabuleiro tabuleiro, int novoX, int novoY) {
+        int dx = Math.abs(novoX - getX());
+        int dy = Math.abs(novoY - getY());
+        int movimentoVertical = novoY - getY();
+        int xAtual = getX();
+        int yAtual = getY();
+
+        // Verifica se a nova posição está dentro do tabuleiro
+        if (novoX < 0 || novoX >= 8 || novoY < 0 || novoY >= 8) {
+            return false;
+        }
+
+        // Movimento vertical do peão
+        if (dx == 0 && dy == 1) {
+            // Movimento para frente uma casa
+            return true;
+        } else if (dx == 0 && dy == 2 && isPrimeiraMovimentacao()) {
+            // Movimento inicial: duas casas para frente
+            return true;
+        } else if (dx == 1 && dy == 1) {
+            // Captura na diagonal
+            return tabuleiro.getPecas().containsKey(novoX + "," + novoY);
+        }
+
+        return false;
+    }
+}
+
+// Classe Tabuleiro
+class Tabuleiro {
+    private Map<String, Peca> pecas;
+
+    public Tabuleiro() {
+        pecas = new HashMap<>();
+    }
+
+    public void adicionarPeca(Peca peca, int x, int y) {
+        pecas.put(x + "," + y, peca);
+    }
+
+    public void moverPeca(Peca peca, int novoX, int novoY) {
+        String posicaoAtual = peca.getX() + "," + peca.getY();
+        String novaPosicao = novoX + "," + novoY;
+
+        if (pecas.containsKey(posicaoAtual)) {
+            if (pecas.containsKey(novaPosicao)) {
+                // Captura
+                pecas.remove(novaPosicao);
+            }
+            peca.setX(novoX);
+            peca.setY(novoY);
+            pecas.remove(posicaoAtual);
+            pecas.put(novaPosicao, peca);
+        } else {
+            throw new IllegalArgumentException("Peça não encontrada no tabuleiro.");
+        }
+    }
+
+    public void exibirTabuleiro() {
+        for (Map.Entry<String, Peca> entry : pecas.entrySet()) {
+            System.out.println("Posição: " + entry.getKey() + " - Peça: " + entry.getValue().getClass().getSimpleName());
+        }
+    }
+
+    public Map<String, Peca> getPecas() {
+        return pecas;
+    }
+
+    // Verificar se o rei está em cheque
+    public boolean reiEmCheque(int x, int y) {
+        for (Peca peca : pecas.values()) {
+            if (peca instanceof Rei) continue;
+            if (peca.podeMoverPara(this, x, y)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Verificar se o rei está em cheque-mate
+    public boolean reiEmChequeMate(Rei rei) {
+        int x = rei.getX();
+        int y = rei.getY();
+        // Verificar se o rei está em cheque
+        if (!reiEmCheque(x, y)) return false;
+
+        // Verificar se há algum movimento que pode retirar o rei do cheque
+        for (Peca peca : pecas.values()) {
+            if (peca instanceof Rei) continue;
+            for (int i = 0; i < 8; i++) {
+                for (int j = 0; j < 8; j++) {
+                    if (peca.podeMoverPara(this, i, j)) {
+                        Peca pecaNaNovaPosicao = pecas.get(i + "," + j);
+                        if (pecaNaNovaPosicao != null) {
+                            pecas.remove(i + "," + j);
+                        }
+                        peca.mover(this, i, j);
+                        if (!reiEmCheque(x, y)) {
+                            // Reverter movimento
+                            pecaNaNovaPosicao = pecas.get(i + "," + j);
+                            if (pecaNaNovaPosicao != null) {
+                                pecas.put(i + "," + j, pecaNaNovaPosicao);
+                            }
+                            peca.setX(peca.getX());
+                            peca.setY(peca.getY());
+                            return false;
+                        }
+                        peca.setX(peca.getX());
+                        peca.setY(peca.getY());
+                        if (pecaNaNovaPosicao != null) {
+                            pecas.put(i + "," + j, pecaNaNovaPosicao);
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+}
+
+// Classe Jogador
+class Jogador {
+    private String nome;
+
+    public Jogador(String nome) {
+        this.nome = nome;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void fazerMovimento(Tabuleiro tabuleiro, Peca peca, int novoX, int novoY) {
+        if (peca.podeMoverPara(tabuleiro, novoX, novoY)) {
+            tabuleiro.moverPeca(peca, novoX, novoY);
+        } else {
+            System.out.println("Movimento inválido para " + peca.getClass().getSimpleName());
+        }
+    }
+
+    public void exibirPosicoesPecas(Tabuleiro tabuleiro) {
+        System.out.println("Posições das peças:");
+        for (Map.Entry<String, Peca> entry : tabuleiro.getPecas().entrySet()) {
+            Peca peca = entry.getValue();
+            System.out.println(peca.getClass().getSimpleName() + " está na posição: (" + peca.getX() + ", " + peca.getY() + ")");
+        }
+    }
+}
+
+// Classe Principal
+public class Main {
+    public static void main(String[] args) {
+        // Criar o tabuleiro
+        Tabuleiro tabuleiro = new Tabuleiro();
+
+        // Adicionar peças para o Jogador 1 (Brancas)
+        adicionarPecas(tabuleiro, 1);
+
+        // Adicionar peças para o Jogador 2 (Pretas)
+        adicionarPecas(tabuleiro, 2);
+
+        // Criar jogadores
+        Jogador jogador1 = new Jogador("Jogador 1 (Brancas)");
+        Jogador jogador2 = new Jogador("Jogador 2 (Pretas)");
+
+        // Exibir o tabuleiro inicial
+        System.out.println("Tabuleiro inicial:");
+        tabuleiro.exibirTabuleiro();
+
+        // Exibir posições das peças
+        jogador1.exibirPosicoesPecas(tabuleiro);
+
+        // Fazer um movimento de exemplo
+        jogador1.fazerMovimento(tabuleiro, tabuleiro.getPecas().get("4,0"), 4, 2); // Movimento da Torre branca
+        jogador2.fazerMovimento(tabuleiro, tabuleiro.getPecas().get("4,7"), 4, 5); // Movimento da Torre preta
+
+        // Exibir o tabuleiro após o movimento
+        System.out.println("\nTabuleiro após os movimentos:");
+        tabuleiro.exibirTabuleiro();
+
+        // Exibir posições das peças após o movimento
+        jogador2.exibirPosicoesPecas(tabuleiro);
+
+        // Verificar se algum rei está em cheque-mate
+        for (Peca peca : tabuleiro.getPecas().values()) {
+            if (peca instanceof Rei) {
+                Rei rei = (Rei) peca;
+                if (tabuleiro.reiEmChequeMate(rei)) {
+                    System.out.println("Cheque-Mate!");
+                } else {
+                    System.out.println("Rei em cheque, mas não está em cheque-mate.");
+                }
+            }
+        }
+    }
+
+    private static void adicionarPecas(Tabuleiro tabuleiro, int jogador) {
+        int linhaPeoes = (jogador == 1) ? 1 : 6;
+        int linhaOutrasPecas = (jogador == 1) ? 0 : 7;
+
+        // Adicionar peões
+        for (int i = 0; i < 8; i++) {
+            tabuleiro.adicionarPeca(new Peao(i, linhaPeoes), i, linhaPeoes);
+        }
+
+        // Adicionar torres
+        tabuleiro.adicionarPeca(new Torre(0, linhaOutrasPecas), 0, linhaOutrasPecas);
+        tabuleiro.adicionarPeca(new Torre(7, linhaOutrasPecas), 7, linhaOutrasPecas);
+
+        // Adicionar cavalos
+        tabuleiro.adicionarPeca(new Cavalo(1, linhaOutrasPecas), 1, linhaOutrasPecas);
+        tabuleiro.adicionarPeca(new Cavalo(6, linhaOutrasPecas), 6, linhaOutrasPecas);
+
+        // Adicionar bispos
+        tabuleiro.adicionarPeca(new Bispo(2, linhaOutrasPecas), 2, linhaOutrasPecas);
+        tabuleiro.adicionarPeca(new Bispo(5, linhaOutrasPecas), 5, linhaOutrasPecas);
+
+        // Adicionar rainha
+        tabuleiro.adicionarPeca(new Rainha(3, linhaOutrasPecas), 3, linhaOutrasPecas);
+
+        // Adicionar rei
+        tabuleiro.adicionarPeca(new Rei(4, linhaOutrasPecas), 4, linhaOutrasPecas);
+    }
+}
